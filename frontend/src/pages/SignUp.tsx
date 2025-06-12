@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,11 +11,37 @@ const SignUp = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock registration - in real app, you'd register with backend
-    navigate("/dashboard");
+    setError(null);
+    try {
+      const res = await fetch("http://localhost:8080/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          username: name, 
+          email, 
+          password 
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setError(data.message || "Sign up failed");
+        return;
+      }
+
+      // Store the token in localStorage
+      localStorage.setItem('token', data.token);
+      
+      // Redirect to dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
   };
 
   return (
@@ -69,6 +94,9 @@ const SignUp = () => {
             <Button type="submit" className="w-full skill-crate-gradient">
               Create Account
             </Button>
+            {error && (
+              <div className="text-red-500 text-sm text-center mt-2">{error}</div>
+            )}
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
