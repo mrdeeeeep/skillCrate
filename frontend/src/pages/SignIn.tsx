@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,16 +5,48 @@ import { Label } from "@/components/ui/label";
 import { BookOpen } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SignIn = () => {
+  const { setUser } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock authentication - in real app, you'd authenticate with backend
-    navigate("/dashboard");
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:8080/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sign in');
+      }
+
+      // Store token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+      
+      // Navigate to dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -32,6 +63,9 @@ const SignIn = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignIn} className="space-y-4">
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -54,8 +88,12 @@ const SignIn = () => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full skill-crate-gradient">
-              Sign In
+            <Button 
+              type="submit" 
+              className="w-full skill-crate-gradient"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
           <div className="mt-6 text-center">
