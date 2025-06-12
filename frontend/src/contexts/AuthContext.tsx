@@ -22,7 +22,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for stored user data on mount
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+      } catch (error) {
+        // If parsing fails, clear the invalid data
+        localStorage.removeItem('user');
+        console.error('Failed to parse stored user data:', error);
+      }
     }
   }, []);
 

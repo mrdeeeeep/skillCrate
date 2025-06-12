@@ -36,9 +36,11 @@ app.use((req, res, next) => {
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const projectRoutes = require('./routes/projects');
 
 // Use routes
 app.use('/api', authRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

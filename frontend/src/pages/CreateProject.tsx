@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -11,13 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CreateProject = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [keywords, setKeywords] = useState<string[]>([]);
   const [currentKeyword, setCurrentKeyword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const addKeyword = () => {
     if (currentKeyword.trim() && !keywords.includes(currentKeyword.trim())) {
@@ -30,7 +32,7 @@ const CreateProject = () => {
     setKeywords(keywords.filter(keyword => keyword !== keywordToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       toast({
@@ -50,14 +52,41 @@ const CreateProject = () => {
       return;
     }
 
-    // Mock project creation
-    toast({
-      title: "Success",
-      description: "Project created successfully!",
-    });
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          title,
+          keywords,
+        }),
+      });
 
-    // Navigate to dashboard
-    navigate("/dashboard");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create project');
+      }
+
+      toast({
+        title: "Success",
+        description: "Project created successfully!",
+      });
+
+      navigate("/dashboard");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to create project',
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeywordKeyPress = (e: React.KeyboardEvent) => {
@@ -137,8 +166,12 @@ const CreateProject = () => {
                     </div>
 
                     <div className="flex gap-4 pt-4">
-                      <Button type="submit" className="skill-crate-gradient">
-                        Create Project
+                      <Button 
+                        type="submit" 
+                        className="skill-crate-gradient"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Creating..." : "Create Project"}
                       </Button>
                       <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>
                         Cancel
