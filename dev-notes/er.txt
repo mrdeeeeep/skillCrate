@@ -7,27 +7,34 @@ created_at
 last_login
 profile_image
 
+
 -Project
 pid
 uid
 title
-description
 keywords
-created_at
-updated_at
-visibility (public/private)
+
+
 
 -Videos
 vid
 pid
+video_id          
 title
-url
-platform (youtube/vimeo/etc)
-duration
-thumbnail_url
 description
+category_id (e.g., "27": Education, "28": Science & Technology, "35": Documentary)
+category_title (e.g., "Education,Science & Technology,Documentary ")
+tags              
+url               
+thumbnail_urls    
+channel_title     
+channel_id        
+published_at      
+duration          
 view_count
-created_at
+like_count
+
+
 
 -Academic-papers
 paper_id
