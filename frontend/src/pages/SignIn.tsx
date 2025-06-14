@@ -41,7 +41,7 @@ const SignIn = () => {
       setUser(data.user);
       
       // Navigate to dashboard
-      navigate("/dashboard");
+      navigate("/profile");
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

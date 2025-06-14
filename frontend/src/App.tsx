@@ -11,6 +11,7 @@ import CreateProject from "./pages/CreateProject";
 import Profile from "./pages/Profile"
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/contexts/AuthContext";
+import Settings from "@/pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/create-project" element={<CreateProject />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
