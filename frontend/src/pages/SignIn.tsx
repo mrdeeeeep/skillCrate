@@ -17,10 +17,9 @@ const SignIn = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
-
     try {
+      console.log('Attempting login with:', { email });
       const response = await fetch('http://localhost:8080/api/login', {
         method: 'POST',
         headers: {
@@ -30,20 +29,20 @@ const SignIn = () => {
       });
 
       const data = await response.json();
+      console.log('Login response:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to sign in');
+        throw new Error(data.message || 'Login failed');
       }
 
-      // Store token and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
-      
-      // Navigate to dashboard
-      navigate("/profile");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        setUser(data.user);
+        navigate('/profile');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError(error instanceof Error ? error.message : 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -111,3 +110,4 @@ const SignIn = () => {
 };
 
 export default SignIn;
+

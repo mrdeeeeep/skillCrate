@@ -14,6 +14,14 @@ const projectSchema = new mongoose.Schema({
   keywords: [{
     type: String,
     trim: true
+  }],
+  videosFetched: {
+    type: Boolean,
+    default: false
+  },
+  videos: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Video'
   }]
 }, {
   timestamps: true

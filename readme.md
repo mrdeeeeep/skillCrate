@@ -37,3 +37,5 @@
 ## 🧪 Dev-ToDo (ignore)
 
 - Project Dashboard
+- Profile
+- Settings

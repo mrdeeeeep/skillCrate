@@ -20,6 +20,7 @@ const CreateProject = () => {
   const [keywords, setKeywords] = useState<string[]>([]);
   const [currentKeyword, setCurrentKeyword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingVideos, setIsFetchingVideos] = useState(false);
 
   const addKeyword = () => {
     if (currentKeyword.trim() && !keywords.includes(currentKeyword.trim())) {
@@ -53,12 +54,21 @@ const CreateProject = () => {
     }
 
     setIsLoading(true);
+    setIsFetchingVideos(true);
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      console.log('📤 Sending project creation request:', { title, keywords });
+      console.log('Authorization token present:', !!token);
+      
       const response = await fetch('http://localhost:8080/api/projects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           title,
@@ -67,18 +77,31 @@ const CreateProject = () => {
       });
 
       const data = await response.json();
+      console.log('📥 Project creation response:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create project');
+        throw new Error(data.message || 'Failed to create project');
+      }
+
+      if (data.warning) {
+        toast({
+          title: "Warning",
+          description: data.warning,
+          variant: "default",
+        });
       }
 
       toast({
         title: "Success",
-        description: "Project created successfully!",
+        description: `Project created successfully with ${data.totalVideos} relevant videos!`,
       });
 
       navigate("/dashboard");
     } catch (error) {
+      console.error('❌ Project creation error:', error);
+      if (error instanceof Error && error.message === 'Not authenticated') {
+        navigate('/login');
+      }
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : 'Failed to create project',
@@ -86,6 +109,7 @@ const CreateProject = () => {
       });
     } finally {
       setIsLoading(false);
+      setIsFetchingVideos(false);
     }
   };
 
@@ -171,7 +195,12 @@ const CreateProject = () => {
                         className="skill-crate-gradient"
                         disabled={isLoading}
                       >
-                        {isLoading ? "Creating..." : "Create Project"}
+                        {isLoading 
+                          ? (isFetchingVideos 
+                            ? "Fetching Videos..." 
+                            : "Creating..."
+                          ) 
+                          : "Create Project"}
                       </Button>
                       <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>
                         Cancel

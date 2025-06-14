@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, ThumbsDown, ExternalLink } from "lucide-react";
@@ -12,6 +11,8 @@ interface ResourceTileProps {
   metadata: {
     author?: string;
     duration?: string;
+    views?: number;
+    likes?: number;
     pages?: number;
     language?: string;
     difficulty?: string;
@@ -29,7 +30,7 @@ export function ResourceTile({ title, description, rating, icon, metadata, url }
   return (
     <Card className="resource-tile group rounded-xl">
       <div className="flex items-start gap-4">
-        <div className="p-3 skill-crate-gradient rounded-xl flex-shrink-0">
+        <div className="p-4 skill-crate-gradient rounded-xl flex-shrink-0 w-24 h-24 flex items-center justify-center">
           {icon}
         </div>
         
@@ -42,9 +43,15 @@ export function ResourceTile({ title, description, rating, icon, metadata, url }
               <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                 {metadata.author && <span>By {metadata.author}</span>}
                 {metadata.duration && <span>{metadata.duration}</span>}
+                {metadata.views && <span>{metadata.views.toLocaleString()} views</span>}
+                {metadata.likes && <span>{metadata.likes.toLocaleString()} likes</span>}
                 {metadata.pages && <span>{metadata.pages} pages</span>}
                 {metadata.language && <span>{metadata.language}</span>}
-                {metadata.difficulty && <span className="px-2 py-1 bg-accent rounded-lg text-accent-foreground">{metadata.difficulty}</span>}
+                {metadata.difficulty && (
+                  <span className="px-2 py-1 bg-accent rounded-lg text-accent-foreground">
+                    {metadata.difficulty}
+                  </span>
+                )}
               </div>
             </div>
             

@@ -70,29 +70,43 @@ router.post('/signup', async (req, res) => {
 // Login route
 router.post('/login', async (req, res) => {
   try {
+    console.log('Login attempt:', req.body);
     const { email, password } = req.body;
+
     const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) {
+      console.log('User not found:', email);
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
-    
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      console.log('Invalid password for user:', email);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
     const token = jwt.sign(
-      { userId: user._id },
+      { 
+        userId: user._id,  // Ensure this matches what auth middleware expects
+        email: user.email 
+      },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    console.log('Generated token for user:', user._id);
     
     res.json({
       token,
       user: {
         id: user._id,
-        username: user.username,
         email: user.email,
-        role: user.role
+        username: user.username
       }
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

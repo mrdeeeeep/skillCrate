@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,23 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Video, FileText, Book, GraduationCap, Github } from "lucide-react";
 
+// Remove videos from mockResources
 const mockResources = {
-  videos: [
-    {
-      title: "React Hooks Deep Dive",
-      description: "Complete guide to React Hooks including useState, useEffect, and custom hooks. Perfect for intermediate developers.",
-      rating: 9.2,
-      metadata: { author: "Tech Academy", duration: "2h 30m", difficulty: "Intermediate" },
-      url: "https://example.com"
-    },
-    {
-      title: "Advanced JavaScript Concepts",
-      description: "Master closures, prototypes, and async programming in JavaScript with practical examples.",
-      rating: 8.8,
-      metadata: { author: "Code Master", duration: "3h 15m", difficulty: "Advanced" },
-      url: "https://example.com"
-    }
-  ],
   papers: [
     {
       title: "Machine Learning in Healthcare",
@@ -52,38 +36,86 @@ const mockResources = {
       url: "https://example.com"
     }
   ],
-  repositories: [
-    {
-      title: "React UI Component Library",
-      description: "Open-source collection of beautiful, accessible React components with TypeScript support.",
-      rating: 8.9,
-      metadata: { author: "OpenSource Team", language: "TypeScript" },
-      url: "https://github.com/example"
-    }
-  ]
-};
+    repositories: [
+      {
+        title: "React UI Component Library",
+        description: "Open-source collection of beautiful, accessible React components with TypeScript support.",
+        rating: 8.9,
+        metadata: { author: "OpenSource Team", language: "TypeScript" },
+        url: "https://github.com/example"
+      }
+    ]
+  };
 
 const sectionIcons = {
-  videos: <Video className="w-6 h-6 text-white" />,
-  papers: <FileText className="w-6 h-6 text-white" />,
-  ebooks: <Book className="w-6 h-6 text-white" />,
-  courses: <GraduationCap className="w-6 h-6 text-white" />,
-  repositories: <Github className="w-6 h-6 text-white" />
+  videos: <Video className="w-12 h-12 text-white" />,  // Increased icon size
+  papers: <FileText className="w-12 h-12 text-white" />,
+  ebooks: <Book className="w-12 h-12 text-white" />,
+  courses: <GraduationCap className="w-12 h-12 text-white" />,
+  repositories: <Github className="w-12 h-12 text-white" />
 };
 
 const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentSection, setCurrentSection] = useState("videos");
+  const [projectData, setProjectData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const section = searchParams.get("section");
-    if (section && section in mockResources) {
-      setCurrentSection(section);
-    }
+    const fetchProjectData = async () => {
+      const projectId = searchParams.get("project");
+      if (!projectId) return;
+
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:8080/api/projects/${projectId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch project data');
+        }
+
+        const data = await response.json();
+        console.log('Project data:', data);
+        setProjectData(data);
+      } catch (err) {
+        console.error('Error fetching project:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch project');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProjectData();
   }, [searchParams]);
 
-  const currentResources = mockResources[currentSection as keyof typeof mockResources] || [];
+  const getCurrentResources = () => {
+    if (currentSection === 'videos' && projectData?.videos) {
+      return projectData.videos.map((video: any) => ({
+        title: video.title,
+        description: video.description,
+        rating: video.userInteractions?.length ? 
+          video.userInteractions.reduce((acc: number, curr: any) => acc + curr.rating, 0) / video.userInteractions.length 
+          : 0,
+        metadata: {
+          author: video.channel_title,
+          duration: video.duration,
+          views: video.view_count,
+          likes: video.like_count
+        },
+        url: video.url
+      }));
+    }
+    return mockResources[currentSection as keyof typeof mockResources] || [];
+  };
+
+  const currentResources = getCurrentResources();
   const filteredResources = currentResources.filter(resource =>
     resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     resource.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -116,32 +148,42 @@ const Dashboard = () => {
 
           <div className="flex-1 p-6">
             <div className="mb-6">
-              <h1 className="text-2xl font-bold mb-2 capitalize">{currentSection}</h1>
+              <h1 className="text-2xl font-bold mb-2 capitalize">
+                {projectData?.title || currentSection}
+              </h1>
               <p className="text-muted-foreground">
-                Discover curated {currentSection} for your learning journey
+                {currentSection === 'videos' 
+                  ? `Videos related to ${projectData?.title || 'your project'}`
+                  : `Discover curated ${currentSection} for your learning journey`}
               </p>
             </div>
 
-            <div className="space-y-4">
-              {filteredResources.length > 0 ? (
-                filteredResources.map((resource, index) => (
-                  <ResourceTile
-                    key={index}
-                    title={resource.title}
-                    description={resource.description}
-                    rating={resource.rating}
-                    icon={sectionIcons[currentSection as keyof typeof sectionIcons]}
-                    metadata={resource.metadata}
-                    url={resource.url}
-                  />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-muted-foreground mb-4">No resources found</div>
-                  <Button variant="outline" className="rounded-lg">Browse All Categories</Button>
-                </div>
-              )}
-            </div>
+            {isLoading ? (
+              <div className="text-center py-12">Loading resources...</div>
+            ) : error ? (
+              <div className="text-center py-12 text-red-500">{error}</div>
+            ) : (
+              <div className="space-y-4">
+                {filteredResources.length > 0 ? (
+                  filteredResources.map((resource, index) => (
+                    <ResourceTile
+                      key={index}
+                      title={resource.title}
+                      description={resource.description}
+                      rating={resource.rating}
+                      icon={sectionIcons[currentSection as keyof typeof sectionIcons]}
+                      metadata={resource.metadata}
+                      url={resource.url}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-muted-foreground mb-4">No resources found</div>
+                    <Button variant="outline" className="rounded-lg">Browse All Categories</Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -150,3 +192,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+
