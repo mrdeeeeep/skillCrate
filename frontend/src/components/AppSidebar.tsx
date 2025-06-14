@@ -24,11 +24,18 @@ import {
   Settings, 
   User,
   FolderOpen,
-  ChevronRight
+  ChevronRight,
+  LayoutDashboard
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Project {
+  _id: string;
+  title: string;
+}
 
 const menuItems = [
   {
@@ -38,40 +45,13 @@ const menuItems = [
   },
 ];
 
-const mockProjects = [
-  {
-    id: 1,
-    name: "Machine Learning Project",
-    sections: [
-      { name: "Videos", icon: Video, url: "/dashboard?project=1&section=videos" },
-      { name: "Academic Papers", icon: FileText, url: "/dashboard?project=1&section=papers" },
-      { name: "E-Books", icon: Book, url: "/dashboard?project=1&section=ebooks" },
-      { name: "Courses", icon: GraduationCap, url: "/dashboard?project=1&section=courses" },
-      { name: "Repositories", icon: Github, url: "/dashboard?project=1&section=repositories" },
-    ]
-  },
-  {
-    id: 2,
-    name: "Web Development Study",
-    sections: [
-      { name: "Videos", icon: Video, url: "/dashboard?project=2&section=videos" },
-      { name: "Academic Papers", icon: FileText, url: "/dashboard?project=2&section=papers" },
-      { name: "E-Books", icon: Book, url: "/dashboard?project=2&section=ebooks" },
-      { name: "Courses", icon: GraduationCap, url: "/dashboard?project=2&section=courses" },
-      { name: "Repositories", icon: Github, url: "/dashboard?project=2&section=repositories" },
-    ]
-  },
-  {
-    id: 3,
-    name: "Data Science Research",
-    sections: [
-      { name: "Videos", icon: Video, url: "/dashboard?project=3&section=videos" },
-      { name: "Academic Papers", icon: FileText, url: "/dashboard?project=3&section=papers" },
-      { name: "E-Books", icon: Book, url: "/dashboard?project=3&section=ebooks" },
-      { name: "Courses", icon: GraduationCap, url: "/dashboard?project=3&section=courses" },
-      { name: "Repositories", icon: Github, url: "/dashboard?project=3&section=repositories" },
-    ]
-  }
+const sections = [
+  { name: "Overview", icon: LayoutDashboard, section: "overview" },
+  { name: "Videos", icon: Video, section: "videos" },
+  { name: "Academic Papers", icon: FileText, section: "papers" },
+  { name: "E-Books", icon: Book, section: "ebooks" },
+  { name: "Courses", icon: GraduationCap, section: "courses" },
+  { name: "Repositories", icon: Github, section: "repositories" },
 ];
 
 const bottomItems = [
@@ -89,22 +69,41 @@ const bottomItems = [
 
 export function AppSidebar() {
   const [searchParams] = useSearchParams();
-  const [openProjects, setOpenProjects] = useState<{ [key: number]: boolean }>({});
+  const [openProjects, setOpenProjects] = useState<{ [key: string]: boolean }>({});
+  const [projects, setProjects] = useState<Project[]>([]);
+  const { user } = useAuth();
 
   const currentProject = searchParams.get("project");
   const currentSection = searchParams.get("section");
 
-  const toggleProject = (projectId: number) => {
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/projects', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch projects');
+        
+        const data = await response.json();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+    };
+
+    if (user) {
+      fetchProjects();
+    }
+  }, [user]);
+
+  const toggleProject = (projectId: string) => {
     setOpenProjects(prev => ({
       ...prev,
       [projectId]: !prev[projectId]
     }));
-  };
-
-  const isActiveSection = (projectId: number, sectionUrl: string) => {
-    const urlParams = new URLSearchParams(sectionUrl.split('?')[1]);
-    return urlParams.get('project') === currentProject && 
-           urlParams.get('section') === currentSection;
   };
 
   return (
@@ -140,25 +139,35 @@ export function AppSidebar() {
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mockProjects.map((project) => (
-                <Collapsible key={project.id} open={openProjects[project.id]} onOpenChange={() => toggleProject(project.id)}>
+              {projects.map((project) => (
+                <Collapsible 
+                  key={project._id} 
+                  open={openProjects[project._id]} 
+                  onOpenChange={() => toggleProject(project._id)}
+                >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton className="hover:bg-accent/50 w-full rounded-lg">
                         <FolderOpen className="w-5 h-5" />
-                        <span className="flex-1 text-left">{project.name}</span>
-                        <ChevronRight className={`w-4 h-4 transition-transform ${openProjects[project.id] ? 'rotate-90' : ''}`} />
+                        <span className="flex-1 text-left">{project.title}</span>
+                        <ChevronRight className={`w-4 h-4 transition-transform ${openProjects[project._id] ? 'rotate-90' : ''}`} />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {project.sections.map((section) => (
+                        {sections.map((section) => (
                           <SidebarMenuSubItem key={section.name}>
                             <SidebarMenuSubButton 
                               asChild
-                              className={`rounded-lg ${isActiveSection(project.id, section.url) ? 'bg-accent text-accent-foreground' : ''}`}
+                              className={`rounded-lg ${
+                                currentProject === project._id && 
+                                currentSection === section.section ? 'bg-accent text-accent-foreground' : ''
+                              }`}
                             >
-                              <Link to={section.url} className="flex items-center gap-3">
+                              <Link 
+                                to={`/dashboard?project=${project._id}&section=${section.section}`} 
+                                className="flex items-center gap-3"
+                              >
                                 <section.icon className="w-4 h-4" />
                                 <span>{section.name}</span>
                               </Link>
