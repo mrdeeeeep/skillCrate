@@ -59,8 +59,8 @@ const videoSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Replace simple index with composite index
-videoSchema.index({ video_id: 1, pid: 1 }, { unique: true });
+// Remove any unique indexes if they exist
+videoSchema.index({ pid: 1, video_id: 1 });
 
 videoSchema.pre('save', function(next) {
   if (!this.url && this.video_id) {

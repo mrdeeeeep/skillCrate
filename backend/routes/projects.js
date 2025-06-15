@@ -29,8 +29,9 @@ router.post('/', auth, async (req, res) => {
       // Fetch videos from YouTube
       const searchResponse = await youtube.search.list({
         part: ['snippet'],
-        q: keywords.join(' '),
+        q: `${keywords.join(' ')} -shorts`,
         type: ['video'],
+        videoDuration: 'medium', // Excludes very short videos
         maxResults: 10,
         relevanceLanguage: 'en',
         videoCategoryId: '27'

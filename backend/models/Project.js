@@ -10,6 +10,7 @@ const projectSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+    // Removed any unique constraint
   },
   keywords: [{
     type: String,
@@ -26,5 +27,8 @@ const projectSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Add compound index for user's projects (optional, for better query performance)
+projectSchema.index({ uid: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Project', projectSchema);
