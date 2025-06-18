@@ -10,6 +10,14 @@ const youtube = google.youtube({
   auth: process.env.YOUTUBE_API_KEY
 });
 
+const parseDuration = (duration) => {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  const hours = parseInt(match[1] || 0);
+  const minutes = parseInt(match[2] || 0);
+  const seconds = parseInt(match[3] || 0);
+  return hours * 3600 + minutes * 60 + seconds;
+};
+
 // Create new project with videos
 router.post('/', auth, async (req, res) => {
   try {
@@ -32,54 +40,44 @@ router.post('/', auth, async (req, res) => {
         q: `${keywords.join(' ')} -shorts`,
         type: ['video'],
         videoDuration: 'medium', // Excludes very short videos
-        maxResults: 10,
+        maxResults: 20, // Get more results since we'll filter some out
         relevanceLanguage: 'en',
         videoCategoryId: '27'
       });
 
       console.log(`Found ${searchResponse.data.items.length} videos`);
 
-      // Save videos one by one
-      const savedVideos = [];
-      for (const item of searchResponse.data.items) {
-        try {
-          const videoDetails = await youtube.videos.list({
-            part: ['contentDetails', 'statistics'],
-            id: [item.id.videoId]
-          });
+      // Get detailed video information
+      const videoIds = searchResponse.data.items.map(item => item.id.videoId);
+      const videoDetails = await youtube.videos.list({
+        part: ['contentDetails', 'statistics', 'snippet'],
+        id: videoIds
+      });
 
-          const videoData = {
-            pid: project._id,
-            video_id: item.id.videoId,
-            url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-            title: item.snippet.title,
-            description: item.snippet.description,
-            thumbnail_urls: {
-              default: item.snippet.thumbnails.default.url,
-              medium: item.snippet.thumbnails.medium.url,
-              high: item.snippet.thumbnails.high.url
-            },
-            channel_title: item.snippet.channelTitle,
-            channel_id: item.snippet.channelId,
-            published_at: item.snippet.publishedAt,
-            duration: videoDetails.data.items[0].contentDetails.duration,
-            view_count: parseInt(videoDetails.data.items[0].statistics.viewCount),
-            like_count: parseInt(videoDetails.data.items[0].statistics.likeCount || 0)
-          };
+      // Filter videos by duration
+      const validVideos = videoDetails.data.items.filter(video => {
+        const durationInSeconds = parseDuration(video.contentDetails.duration);
+        return durationInSeconds >= 60;
+      }).slice(0, 10); // Take first 10 valid videos
 
-          // Try to save video, ignore duplicates
-          const video = new Video(videoData);
-          const savedVideo = await video.save();
-          savedVideos.push(savedVideo);
-          console.log('Saved video:', savedVideo._id);
-        } catch (videoError) {
-          if (videoError.code === 11000) {
-            console.log('Duplicate video, skipping:', item.id.videoId);
-            continue;
-          }
-          console.error('Error saving video:', videoError);
-        }
-      }
+      // Save filtered videos
+      const savedVideos = await Promise.all(validVideos.map(async video => {
+        const videoData = {
+          pid: project._id,
+          video_id: video.id,
+          url: `https://www.youtube.com/watch?v=${video.id}`,
+          title: video.snippet.title,
+          description: video.snippet.description,
+          thumbnail_urls: video.snippet.thumbnails,
+          channel_title: video.snippet.channelTitle,
+          channel_id: video.snippet.channelId,
+          published_at: video.snippet.publishedAt,
+          duration: video.contentDetails.duration,
+          view_count: parseInt(video.statistics.viewCount),
+          like_count: parseInt(video.statistics.likeCount || 0)
+        };
+        return new Video(videoData).save();
+      }));
 
       // Update project with saved videos
       project.videos = savedVideos.map(video => video._id);
