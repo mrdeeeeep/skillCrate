@@ -68,7 +68,11 @@ router.post('/', auth, async (req, res) => {
           url: `https://www.youtube.com/watch?v=${video.id}`,
           title: video.snippet.title,
           description: video.snippet.description,
-          thumbnail_urls: video.snippet.thumbnails,
+          thumbnail_urls: {
+            default: video.snippet.thumbnails?.default?.url || '',
+            medium: video.snippet.thumbnails?.medium?.url || '',
+            high: video.snippet.thumbnails?.high?.url || ''
+          },
           channel_title: video.snippet.channelTitle,
           channel_id: video.snippet.channelId,
           published_at: video.snippet.publishedAt,

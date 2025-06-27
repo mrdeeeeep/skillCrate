@@ -96,6 +96,102 @@ const CreateProject = () => {
         description: `Project created successfully with ${data.totalVideos} relevant videos!`,
       });
 
+      // Fetch/save academic papers for this project
+      try {
+        const papersRes = await fetch(`http://localhost:8080/api/academic-papers/${data.project._id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ keywords })
+        });
+        if (!papersRes.ok) {
+          const errData = await papersRes.json();
+          toast({
+            title: "Academic Papers Error",
+            description: errData.message || 'Failed to fetch/save academic papers',
+            variant: "destructive"
+          });
+        } else {
+          const papersData = await papersRes.json();
+          toast({
+            title: "Academic Papers",
+            description: `Fetched and saved ${papersData.total} academic papers!`,
+          });
+        }
+      } catch (err) {
+        toast({
+          title: "Academic Papers Error",
+          description: err instanceof Error ? err.message : 'Failed to fetch/save academic papers',
+          variant: "destructive"
+        });
+      }
+
+      // Fetch/save e-books for this project
+      try {
+        const ebooksRes = await fetch(`http://localhost:8080/api/ebooks/${data.project._id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ keywords })
+        });
+        if (!ebooksRes.ok) {
+          const errData = await ebooksRes.json();
+          toast({
+            title: "E-Books Error",
+            description: errData.message || 'Failed to fetch/save e-books',
+            variant: "destructive"
+          });
+        } else {
+          const ebooksData = await ebooksRes.json();
+          toast({
+            title: "E-Books",
+            description: `Fetched and saved ${ebooksData.ebooks?.length || 0} e-books!`,
+          });
+        }
+      } catch (err) {
+        toast({
+          title: "E-Books Error",
+          description: err instanceof Error ? err.message : 'Failed to fetch/save e-books',
+          variant: "destructive"
+        });
+      }
+
+      // Fetch/save repositories for this project
+      try {
+        const reposRes = await fetch(`http://localhost:8080/api/repositories/${data.project._id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ keywords })
+        });
+        if (!reposRes.ok) {
+          const errData = await reposRes.json();
+          toast({
+            title: "Repositories Error",
+            description: errData.message || 'Failed to fetch/save repositories',
+            variant: "destructive"
+          });
+        } else {
+          const reposData = await reposRes.json();
+          toast({
+            title: "Repositories",
+            description: `Fetched and saved ${reposData.repositories?.length || 0} repositories!`,
+          });
+        }
+      } catch (err) {
+        toast({
+          title: "Repositories Error",
+          description: err instanceof Error ? err.message : 'Failed to fetch/save repositories',
+          variant: "destructive"
+        });
+      }
+
       navigate("/dashboard");
     } catch (error) {
       console.error('❌ Project creation error:', error);

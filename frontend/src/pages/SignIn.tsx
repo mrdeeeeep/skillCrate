@@ -35,8 +35,9 @@ const SignIn = () => {
         throw new Error(data.message || 'Login failed');
       }
 
-      if (data.token) {
+      if (data.token && data.user) {
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
         setUser(data.user);
         navigate('/profile');
       }

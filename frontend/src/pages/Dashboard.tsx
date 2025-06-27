@@ -59,9 +59,95 @@ const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentSection, setCurrentSection] = useState("videos");
+
+  // Sync currentSection with 'section' param in URL
+  useEffect(() => {
+    const sectionParam = searchParams.get("section");
+    if (sectionParam && sectionParam !== currentSection) {
+      setCurrentSection(sectionParam);
+    }
+  }, [searchParams, currentSection]);
   const [projectData, setProjectData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [papers, setPapers] = useState<any[]>([]);
+  const [ebooks, setEBooks] = useState<any[]>([]);
+  const [repositories, setRepositories] = useState<any[]>([]);
+
+  // Fetch academic papers when section or project changes
+  useEffect(() => {
+    const fetchPapers = async () => {
+      if (currentSection !== 'papers') return;
+      const projectId = searchParams.get("project");
+      if (!projectId) return;
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:8080/api/academic-papers/project/${projectId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch academic papers');
+        const data = await response.json();
+        setPapers(data.papers || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch academic papers');
+        setPapers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPapers();
+  }, [currentSection, searchParams]);
+
+  // Fetch e-books when section or project changes
+  useEffect(() => {
+    const fetchEBooks = async () => {
+      if (currentSection !== 'ebooks') return;
+      const projectId = searchParams.get("project");
+      if (!projectId) return;
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:8080/api/ebooks/project/${projectId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch e-books');
+        const data = await response.json();
+        setEBooks(data.ebooks || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch e-books');
+        setEBooks([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchEBooks();
+  }, [currentSection, searchParams]);
+
+  // Fetch repositories when section or project changes
+  useEffect(() => {
+    const fetchRepositories = async () => {
+      if (currentSection !== 'repositories') return;
+      const projectId = searchParams.get("project");
+      if (!projectId) return;
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:8080/api/repositories/project/${projectId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch repositories');
+        const data = await response.json();
+        setRepositories(data.repositories || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch repositories');
+        setRepositories([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchRepositories();
+  }, [currentSection, searchParams]);
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -112,6 +198,58 @@ const Dashboard = () => {
         url: video.url
       }));
     }
+    if (currentSection === 'papers') {
+      return papers.map((paper: any) => ({
+        title: paper.title,
+        description: paper.abstract,
+        rating: paper.userInteractions?.length ?
+          paper.userInteractions.reduce((acc: number, curr: any) => acc + curr.rating, 0) / paper.userInteractions.length
+          : 0,
+        metadata: {
+          author: paper.authors?.join(', '),
+          year: paper.yearPublished,
+          publisher: paper.publisher,
+          subjects: paper.subjects?.join(', '),
+          language: paper.language
+        },
+        url: paper.downloadUrl || paper.sourceUrl || paper.url
+      }));
+    }
+    if (currentSection === 'ebooks') {
+      return ebooks.map((ebook: any) => ({
+        title: ebook.title,
+        description: ebook.description,
+        rating: ebook.userInteractions?.length ?
+          ebook.userInteractions.reduce((acc: number, curr: any) => acc + curr.rating, 0) / ebook.userInteractions.length
+          : 0,
+        metadata: {
+          author: ebook.authors?.join(', '),
+          publisher: ebook.publisher,
+          publishedDate: ebook.publishedDate,
+          categories: ebook.categories?.join(', '),
+          language: ebook.language,
+          pages: ebook.pageCount
+        },
+        url: ebook.previewLink || ebook.infoLink || ebook.thumbnail
+      }));
+    }
+    if (currentSection === 'repositories') {
+      return repositories.map((repo: any) => ({
+        title: repo.name,
+        description: repo.description,
+        rating: repo.userInteractions?.length ?
+          repo.userInteractions.reduce((acc: number, curr: any) => acc + curr.rating, 0) / repo.userInteractions.length
+          : 0,
+        metadata: {
+          full_name: repo.full_name,
+          stars: repo.stars,
+          language: repo.language,
+          topics: repo.topics?.join(', '),
+        },
+        url: repo.url
+      }));
+    }
+    // For all other sections, only use mockResources for that section
     return mockResources[currentSection as keyof typeof mockResources] || [];
   };
 

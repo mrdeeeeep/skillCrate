@@ -72,6 +72,9 @@ const videoRoutes = require('./routes/videos');
 app.use('/api', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api/academic-papers', require('./routes/academicPapers'));
+app.use('/api/ebooks', require('./routes/ebooks'));
+app.use('/api/repositories', require('./routes/repositories'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
